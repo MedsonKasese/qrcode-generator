@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>QRCodeGenerator</title>
+    <link rel="stylesheet" href="/PracticalProjects/QRcode.css">
+    
+    <style>
+        
+  
+    </style>
+</head>
+
+<body>
+    <div class="container">
+       <p>Enter your Text or URL</p> 
+       
+       <input type="text" placeholder="Text or URL" id="qrText"> 
+       
+       <div class="imgBox" id="imgBox">
+           <img src="" id="qrImage">
+       </div>
+      
+       <!--Loading animation--> 
+       
+       <div id="loading" class="loading">Generating QR Code  
+       <span>.</span>
+       <span>.</span>
+       <span>.</span>
+       </div>
+       
+       
+        <!--QR size selection -->
+        
+       <p id="QRSizeText">Choose QR size</p>
+       
+       <select id="qrSize">
+    <option value="150">Small</option>
+    <option value="250" selected>Medium</option>
+    <option value="350">Large</option>
+</select>
+       
+        <!--qr generate button-->
+       
+       <button onclick="generateQR()">Generate QR Code</button>
+       
+        <!--QR download button-->
+        
+       <button onclick="downloadQR()">Download QR</button>
+    
+
+<p id="downloadMessage" class="download-message"></p>
+</div>
+
+     </script>
+    
+</body>
+
+</html>
