@@ -35,7 +35,7 @@ qrText.addEventListener("input", function(){
     qrGenerated = true;
 }
 
-    // i have decided to be commenting my code in //chichewa cox no 
+// QRCode generator logic 
     
         function generateQR(){
             
