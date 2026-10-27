@@ -1,61 +1,223 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>QRCodeGenerator</title>
-    <link rel="stylesheet" href="styles.css">
-    
-    <style>
-        
-  
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="Create and download customizable QR codes for links, Wi-Fi, email, phone numbers, messages, and contacts.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="QR Studio">
+  <title>QR Studio — Free QR Code Generator</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-375x812.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-390x844.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-393x852.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-402x874.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-430x932.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-ipad-768x1024.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)">
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-    <div class="container">
-       <p>Enter your Text or URL</p> 
-       
-       <input type="text" placeholder="Text or URL" id="qrText"> 
-       
-       <div class="imgBox" id="imgBox">
-           <img src="" id="qrImage">
-       </div>
-      
-       <!--Loading animation--> 
-       
-       <div id="loading" class="loading">Generating QR Code  
-       <span>.</span>
-       <span>.</span>
-       <span>.</span>
-       </div>
-       
-       
-        <!--QR size selection -->
-        
-       <p id="QRSizeText">Choose QR size</p>
-       
-       <select id="qrSize">
-    <option value="150">Small</option>
-    <option value="250" selected>Medium</option>
-    <option value="350">Large</option>
-</select>
-       
-        <!--qr generate button-->
-       
-       <button onclick="generateQR()">Generate QR Code</button>
-       
-        <!--QR download button-->
-        
-       <button onclick="downloadQR()">Download QR</button>
-    
+  <main class="app-shell">
+    <header class="page-header">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div>
+        <p class="eyebrow">SIMPLE. FAST. FREE.</p>
+        <h1>QR Studio</h1>
+        <p class="intro">Make a QR code for just about anything.</p>
+      </div>
+      <button class="install-button" id="installButton" type="button" hidden>Install app</button>
+    </header>
 
-<p id="downloadMessage" class="download-message"></p>
-</div>
+    <form id="qrForm" class="workspace" novalidate>
+      <section class="panel editor-panel" aria-labelledby="editorTitle">
+        <div class="panel-heading">
+          <div>
+            <p class="step-label">01 / CONTENT</p>
+            <h2 id="editorTitle">What should it open?</h2>
+          </div>
+        </div>
 
-   <script src="script.js"></script>
-    
+        <label class="field-label" for="contentType">QR code type</label>
+        <select id="contentType" name="contentType">
+          <option value="text">Text</option>
+          <option value="url">Website link</option>
+          <option value="wifi">Wi-Fi access</option>
+          <option value="email">Email</option>
+          <option value="phone">Phone number</option>
+          <option value="sms">Text message</option>
+          <option value="contact">Contact card</option>
+        </select>
+
+        <fieldset class="content-fields" id="fields-text">
+          <legend class="visually-hidden">Text content</legend>
+          <label class="field-label" for="textValue">Your text</label>
+          <textarea id="textValue" name="textValue" rows="4" placeholder="Type a note, code, or anything you want to share"></textarea>
+        </fieldset>
+
+        <fieldset class="content-fields" id="fields-url" disabled hidden>
+          <legend class="visually-hidden">Website link</legend>
+          <label class="field-label" for="urlValue">Website URL</label>
+          <input id="urlValue" name="urlValue" type="url" placeholder="https://example.com" autocomplete="url">
+          <p class="field-hint">Include https:// for the best results.</p>
+        </fieldset>
+
+        <fieldset class="content-fields" id="fields-wifi" disabled hidden>
+          <legend class="visually-hidden">Wi-Fi network details</legend>
+          <label class="field-label" for="wifiName">Network name (SSID)</label>
+          <input id="wifiName" name="wifiName" type="text" autocomplete="off" placeholder="e.g. Home Wi-Fi">
+          <div class="field-row">
+            <div class="field-column">
+              <label class="field-label" for="wifiSecurity">Security</label>
+              <select id="wifiSecurity" name="wifiSecurity">
+                <option value="WPA">WPA / WPA2</option>
+                <option value="WEP">WEP</option>
+                <option value="nopass">No password</option>
+              </select>
+            </div>
+            <div class="field-column" id="wifiPasswordColumn">
+              <label class="field-label" for="wifiPassword">Password</label>
+              <input id="wifiPassword" name="wifiPassword" type="password" autocomplete="new-password" placeholder="Wi-Fi password">
+            </div>
+          </div>
+          <label class="check-row" for="wifiHidden"><input id="wifiHidden" name="wifiHidden" type="checkbox"><span>This is a hidden network</span></label>
+        </fieldset>
+
+        <fieldset class="content-fields" id="fields-email" disabled hidden>
+          <legend class="visually-hidden">Email details</legend>
+          <label class="field-label" for="emailAddress">Email address</label>
+          <input id="emailAddress" name="emailAddress" type="email" autocomplete="email" placeholder="name@example.com">
+          <label class="field-label" for="emailSubject">Subject <span class="optional">(optional)</span></label>
+          <input id="emailSubject" name="emailSubject" type="text" placeholder="Email subject">
+          <label class="field-label" for="emailBody">Message <span class="optional">(optional)</span></label>
+          <textarea id="emailBody" name="emailBody" rows="3" placeholder="Write a message"></textarea>
+        </fieldset>
+
+        <fieldset class="content-fields" id="fields-phone" disabled hidden>
+          <legend class="visually-hidden">Phone number</legend>
+          <label class="field-label" for="phoneNumber">Phone number</label>
+          <input id="phoneNumber" name="phoneNumber" type="tel" autocomplete="tel" placeholder="+1 555 010 1234">
+          <p class="field-hint">Use the country code so it works internationally.</p>
+        </fieldset>
+
+        <fieldset class="content-fields" id="fields-sms" disabled hidden>
+          <legend class="visually-hidden">Text message details</legend>
+          <label class="field-label" for="smsNumber">Recipient phone number</label>
+          <input id="smsNumber" name="smsNumber" type="tel" autocomplete="tel" placeholder="+1 555 010 1234">
+          <label class="field-label" for="smsMessage">Message</label>
+          <textarea id="smsMessage" name="smsMessage" rows="3" placeholder="Your pre-filled message"></textarea>
+        </fieldset>
+
+        <fieldset class="content-fields" id="fields-contact" disabled hidden>
+          <legend class="visually-hidden">Contact card details</legend>
+          <label class="field-label" for="contactName">Full name</label>
+          <input id="contactName" name="contactName" type="text" autocomplete="name" placeholder="Alex Morgan">
+          <label class="field-label" for="contactOrganization">Organization <span class="optional">(optional)</span></label>
+          <input id="contactOrganization" name="contactOrganization" type="text" autocomplete="organization" placeholder="Company or group">
+          <div class="field-row">
+            <div class="field-column">
+              <label class="field-label" for="contactPhone">Phone <span class="optional">(optional)</span></label>
+              <input id="contactPhone" name="contactPhone" type="tel" autocomplete="tel" placeholder="+1 555 010 1234">
+            </div>
+            <div class="field-column">
+              <label class="field-label" for="contactEmail">Email <span class="optional">(optional)</span></label>
+              <input id="contactEmail" name="contactEmail" type="email" autocomplete="email" placeholder="alex@example.com">
+            </div>
+          </div>
+        </fieldset>
+
+        <details class="customize">
+          <summary><span>Customize appearance</span><span class="summary-note">Color, size &amp; scan quality</span></summary>
+          <div class="customize-content">
+            <div class="field-row">
+              <div class="field-column">
+                <label class="field-label" for="qrDark">Code color</label>
+                <div class="color-control"><input id="qrDark" type="color" value="#12243a" aria-label="QR code color"><span id="darkColorValue">#12243A</span></div>
+              </div>
+              <div class="field-column">
+                <label class="field-label" for="qrLight">Background</label>
+                <div class="color-control"><input id="qrLight" type="color" value="#ffffff" aria-label="QR background color"><span id="lightColorValue">#FFFFFF</span></div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-column">
+                <label class="field-label" for="qrSize">Image size</label>
+                <select id="qrSize" name="qrSize"><option value="240">Small · 240 px</option><option value="360" selected>Medium · 360 px</option><option value="600">Large · 600 px</option></select>
+              </div>
+              <div class="field-column">
+                <label class="field-label" for="qrErrorCorrection">Error correction</label>
+                <select id="qrErrorCorrection" name="qrErrorCorrection"><option value="L">Low</option><option value="M">Medium</option><option value="Q">Quartile</option><option value="H" selected>High</option></select>
+              </div>
+            </div>
+            <p class="field-hint">High correction is selected for the centered QR Studio icon; stronger correction helps codes scan if partly damaged.</p>
+          </div>
+        </details>
+
+        <div class="form-actions">
+          <button class="button button-primary" id="generateButton" type="submit"><span>Generate QR code</span><span aria-hidden="true">→</span></button>
+          <button class="button button-quiet" id="resetButton" type="reset">Clear</button>
+        </div>
+        <p id="statusMessage" class="status-message" role="status" aria-live="polite">Choose a type and enter your content to get started.</p>
+      </section>
+
+      <aside class="panel preview-panel" aria-labelledby="previewTitle" aria-busy="false">
+        <div class="panel-heading">
+          <div>
+            <p class="step-label">02 / YOUR CODE</p>
+            <h2 id="previewTitle">Ready to scan</h2>
+          </div>
+          <span class="live-badge"><span class="live-dot"></span>PNG</span>
+        </div>
+        <div class="preview-stage" id="imgBox">
+          <div class="preview-placeholder" id="previewPlaceholder">
+            <div class="placeholder-pattern" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <p>Your QR code will appear here</p>
+            <span>It’s generated only when you press the button.</span>
+          </div>
+          <div class="loading-indicator" id="loading" hidden><span class="spinner" aria-hidden="true"></span><p>Creating your QR code…</p></div>
+          <img id="qrImage" alt="Generated QR code preview" hidden>
+        </div>
+        <div class="preview-actions">
+          <button class="button button-download" id="downloadButton" type="button" disabled><span aria-hidden="true">↓</span> Download PNG</button>
+          <button class="button button-copy" id="copyButton" type="button" disabled>Copy content</button>
+        </div>
+        <p class="privacy-note"><span aria-hidden="true">◆</span> Your QR content is sent to QuickChart to create the image. Avoid encoding sensitive information.</p>
+      </aside>
+    </form>
+
+    <section class="panel scanner-panel" aria-labelledby="scannerTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">03 / SCAN A CODE</p>
+          <h2 id="scannerTitle">QR &amp; barcode scanner</h2>
+        </div>
+        <span class="live-badge">ON-DEVICE</span>
+      </div>
+      <p class="scanner-intro">Scan QR codes and common 1D/2D barcodes with your camera, or select a photo from your device. The browser only gets access to the image you choose.</p>
+      <div class="scanner-controls">
+        <button class="button button-primary" id="startScanButton" type="button">Start camera</button>
+        <button class="button button-quiet" id="stopScanButton" type="button" disabled>Stop camera</button>
+        <label class="button button-quiet scanner-file-button" for="scanImageInput">Choose from device</label>
+        <input class="visually-hidden" id="scanImageInput" type="file" accept="image/*">
+      </div>
+      <p id="scannerStatus" class="status-message" role="status" aria-live="polite">Camera permission is requested only when you press Start camera. Photo access is limited to the image you select. HTTPS or localhost is required.</p>
+      <div class="scanner-camera" id="scannerCamera" hidden>
+        <video id="scannerVideo" autoplay muted playsinline aria-label="Live barcode scanner camera view"></video>
+      </div>
+      <div class="scanner-result" id="scannerResult" hidden>
+        <p class="step-label" id="scannerFormat"></p>
+        <pre id="scannerText"></pre>
+        <button class="button button-copy" id="copyScanResultButton" type="button">Copy scanned content</button>
+      </div>
+      <p class="privacy-note"><span aria-hidden="true">◆</span> Camera frames and selected images are decoded on this device; scanner data is not uploaded.</p>
+    </section>
+    <footer><span>QR Studio</span><span>Free to use · No account needed</span></footer>
+  </main>
+  <script src="./assets/vendor/zxing-browser.min.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
-
 </html>
