@@ -5,7 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07111f">
   <meta name="description" content="Create and download customizable QR codes for links, Wi-Fi, email, phone numbers, messages, and contacts.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="QR Studio">
   <title>QR Studio — Free QR Code Generator</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-375x812.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-390x844.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-393x852.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-402x874.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-iphone-430x932.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)">
+  <link rel="apple-touch-startup-image" href="./assets/splash/splash-ipad-768x1024.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -17,6 +30,7 @@
         <h1>QR Studio</h1>
         <p class="intro">Make a QR code for just about anything.</p>
       </div>
+      <button class="install-button" id="installButton" type="button" hidden>Install app</button>
     </header>
 
     <form id="qrForm" class="workspace" novalidate>
@@ -136,10 +150,10 @@
               </div>
               <div class="field-column">
                 <label class="field-label" for="qrErrorCorrection">Error correction</label>
-                <select id="qrErrorCorrection" name="qrErrorCorrection"><option value="L">Low</option><option value="M" selected>Medium</option><option value="Q">Quartile</option><option value="H">High</option></select>
+                <select id="qrErrorCorrection" name="qrErrorCorrection"><option value="L">Low</option><option value="M">Medium</option><option value="Q">Quartile</option><option value="H" selected>High</option></select>
               </div>
             </div>
-            <p class="field-hint">Higher correction helps a code scan if it is partly damaged, but makes the pattern denser.</p>
+            <p class="field-hint">High correction is selected for the centered QR Studio icon; stronger correction helps codes scan if partly damaged.</p>
           </div>
         </details>
 
@@ -174,8 +188,36 @@
         <p class="privacy-note"><span aria-hidden="true">◆</span> Your QR content is sent to QuickChart to create the image. Avoid encoding sensitive information.</p>
       </aside>
     </form>
+
+    <section class="panel scanner-panel" aria-labelledby="scannerTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">03 / SCAN A CODE</p>
+          <h2 id="scannerTitle">QR &amp; barcode scanner</h2>
+        </div>
+        <span class="live-badge">ON-DEVICE</span>
+      </div>
+      <p class="scanner-intro">Scan QR codes and common 1D/2D barcodes with your camera, or select a photo from your device. The browser only gets access to the image you choose.</p>
+      <div class="scanner-controls">
+        <button class="button button-primary" id="startScanButton" type="button">Start camera</button>
+        <button class="button button-quiet" id="stopScanButton" type="button" disabled>Stop camera</button>
+        <label class="button button-quiet scanner-file-button" for="scanImageInput">Choose from device</label>
+        <input class="visually-hidden" id="scanImageInput" type="file" accept="image/*">
+      </div>
+      <p id="scannerStatus" class="status-message" role="status" aria-live="polite">Camera permission is requested only when you press Start camera. Photo access is limited to the image you select. HTTPS or localhost is required.</p>
+      <div class="scanner-camera" id="scannerCamera" hidden>
+        <video id="scannerVideo" autoplay muted playsinline aria-label="Live barcode scanner camera view"></video>
+      </div>
+      <div class="scanner-result" id="scannerResult" hidden>
+        <p class="step-label" id="scannerFormat"></p>
+        <pre id="scannerText"></pre>
+        <button class="button button-copy" id="copyScanResultButton" type="button">Copy scanned content</button>
+      </div>
+      <p class="privacy-note"><span aria-hidden="true">◆</span> Camera frames and selected images are decoded on this device; scanner data is not uploaded.</p>
+    </section>
     <footer><span>QR Studio</span><span>Free to use · No account needed</span></footer>
   </main>
+  <script src="./assets/vendor/zxing-browser.min.js"></script>
   <script type="module" src="script.js"></script>
 </body>
 </html>

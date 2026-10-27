@@ -10,11 +10,24 @@ const generateButton = document.getElementById("generateButton");
 const downloadButton = document.getElementById("downloadButton");
 const copyButton = document.getElementById("copyButton");
 const statusMessage = document.getElementById("statusMessage");
+const installButton = document.getElementById("installButton");
 const wifiSecurity = document.getElementById("wifiSecurity");
 const wifiPassword = document.getElementById("wifiPassword");
 const wifiPasswordColumn = document.getElementById("wifiPasswordColumn");
 const qrDark = document.getElementById("qrDark");
 const qrLight = document.getElementById("qrLight");
+const appIcon = new Image();
+appIcon.src = new URL("./assets/icons/icon-512.png", import.meta.url).href;
+const startScanButton = document.getElementById("startScanButton");
+const stopScanButton = document.getElementById("stopScanButton");
+const scanImageInput = document.getElementById("scanImageInput");
+const scannerCamera = document.getElementById("scannerCamera");
+const scannerVideo = document.getElementById("scannerVideo");
+const scannerStatus = document.getElementById("scannerStatus");
+const scannerResult = document.getElementById("scannerResult");
+const scannerFormat = document.getElementById("scannerFormat");
+const scannerText = document.getElementById("scannerText");
+const copyScanResultButton = document.getElementById("copyScanResultButton");
 const requiredByType = {
   text: ["textValue"],
   url: ["urlValue"],
@@ -29,6 +42,10 @@ let currentObjectUrl = "";
 let currentPayload = "";
 let currentRequest = null;
 let requestVersion = 0;
+let deferredInstallPrompt = null;
+let scannerReader = null;
+let scannerControls = null;
+let cameraScanActive = false;
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -113,6 +130,157 @@ function payloadForCurrentType(values) {
   return buildQrPayload(contentType.value, values);
 }
 
+async function addQrStudioMark(qrBlob) {
+  await appIcon.decode();
+  const sourceUrl = URL.createObjectURL(qrBlob);
+  try {
+    const qrSource = new Image();
+    qrSource.src = sourceUrl;
+    await qrSource.decode();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = qrSource.naturalWidth;
+    canvas.height = qrSource.naturalHeight;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("This browser could not prepare the QR Studio logo overlay.");
+    context.drawImage(qrSource, 0, 0);
+
+    const badgeSize = Math.round(Math.min(canvas.width, canvas.height) * 0.2);
+    const iconSize = Math.round(badgeSize * 0.82);
+    const centerX = (canvas.width - badgeSize) / 2;
+    const centerY = (canvas.height - badgeSize) / 2;
+    context.fillStyle = "#ffffff";
+    context.fillRect(centerX, centerY, badgeSize, badgeSize);
+    context.drawImage(
+      appIcon,
+      (canvas.width - iconSize) / 2,
+      (canvas.height - iconSize) / 2,
+      iconSize,
+      iconSize,
+    );
+
+    const resultBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!resultBlob) throw new Error("This browser could not export the QR code image.");
+    return resultBlob;
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
+function getScannerReader() {
+  const Reader = window.QRStudioScanner?.BrowserMultiFormatReader;
+  if (!Reader) throw new Error("The local scanner could not be loaded. Refresh the app and try again.");
+  if (!scannerReader) scannerReader = new Reader();
+  return scannerReader;
+}
+
+function stopCameraScanner() {
+  cameraScanActive = false;
+  try {
+    scannerControls?.stop();
+  } catch (error) {
+    console.warn("QR Studio could not stop scanner controls cleanly.", error);
+  }
+  scannerControls = null;
+  const stream = scannerVideo.srcObject;
+  if (stream) {
+    stream.getTracks().forEach((track) => track.stop());
+    scannerVideo.srcObject = null;
+  }
+  scannerCamera.hidden = true;
+  startScanButton.disabled = false;
+  stopScanButton.disabled = true;
+}
+
+function clearScannedResult() {
+  scannerResult.hidden = true;
+  scannerFormat.textContent = "";
+  scannerText.textContent = "";
+}
+
+function scannedFormatName(result) {
+  const format = result.getBarcodeFormat();
+  const formatName = window.QRStudioScanner?.BarcodeFormat?.[format] ?? String(format);
+  return formatName.replace(/_/g, " ");
+}
+
+function showScannedResult(result, source) {
+  if (!result) return;
+  stopCameraScanner();
+  scannerFormat.textContent = `${scannedFormatName(result)} · ${source}`;
+  scannerText.textContent = result.getText();
+  scannerResult.hidden = false;
+  scannerStatus.textContent = `Code detected with ${source}.`;
+}
+
+async function startCameraScanner() {
+  stopCameraScanner();
+  clearScannedResult();
+  if (!navigator.mediaDevices?.getUserMedia) {
+    scannerStatus.textContent = "Camera scanning requires HTTPS or localhost. You can still choose an image to scan.";
+    return;
+  }
+
+  let reader;
+  try {
+    reader = getScannerReader();
+  } catch (error) {
+    scannerStatus.textContent = error.message;
+    return;
+  }
+
+  cameraScanActive = true;
+  scannerCamera.hidden = false;
+  startScanButton.disabled = true;
+  stopScanButton.disabled = false;
+  scannerStatus.textContent = "Requesting camera access…";
+
+  try {
+    const controls = await reader.decodeFromConstraints(
+      { video: { facingMode: { ideal: "environment" } }, audio: false },
+      scannerVideo,
+      (result) => {
+        if (result && cameraScanActive) showScannedResult(result, "camera");
+      },
+    );
+    scannerControls = controls;
+    if (!cameraScanActive) controls.stop();
+    else scannerStatus.textContent = "Scanning. Hold a QR code or barcode steadily in the camera view.";
+  } catch (error) {
+    stopCameraScanner();
+    if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+      scannerStatus.textContent = "Camera access was denied. Allow camera access in your browser, or choose an image instead.";
+    } else if (error.name === "NotFoundError" || error.name === "OverconstrainedError") {
+      scannerStatus.textContent = "No usable camera was found. You can still choose an image to scan.";
+    } else {
+      scannerStatus.textContent = "Camera could not start. Check browser permissions or choose an image instead.";
+    }
+  }
+}
+
+async function scanSelectedImage(file) {
+  if (!file) return;
+  stopCameraScanner();
+  clearScannedResult();
+  if (!file.type.startsWith("image/")) {
+    scannerStatus.textContent = "Choose a valid image file containing a QR code or barcode.";
+    scanImageInput.value = "";
+    return;
+  }
+
+  scannerStatus.textContent = "Reading the image on this device…";
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const result = await getScannerReader().decodeFromImageUrl(imageUrl);
+    showScannedResult(result, "image");
+  } catch {
+    scannerStatus.textContent = "No supported code was found. Try a sharper, well-lit image with the code fully visible.";
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+    scanImageInput.value = "";
+  }
+}
+
 function handleFormEdit(event) {
   if (event.target === contentType) showActiveFields();
   if (event.target === wifiSecurity) syncWifiPassword();
@@ -163,11 +331,12 @@ form.addEventListener("submit", async (event) => {
     });
     if (!response.ok) throw new Error("The QR service could not create an image. Please try again.");
 
-    const imageBlob = await response.blob();
-    if (!imageBlob.type.startsWith("image/")) {
+    const qrBlob = await response.blob();
+    if (!qrBlob.type.startsWith("image/")) {
       throw new Error("The QR service returned an unexpected response. Please try again.");
     }
 
+    const imageBlob = await addQrStudioMark(qrBlob);
     pendingObjectUrl = URL.createObjectURL(imageBlob);
     qrImage.src = pendingObjectUrl;
     await qrImage.decode();
@@ -183,7 +352,7 @@ form.addEventListener("submit", async (event) => {
     previewPlaceholder.hidden = true;
     downloadButton.disabled = false;
     copyButton.disabled = false;
-    setStatus("Your QR code is ready to download or share.");
+    setStatus("Your QR code is ready, with the QR Studio icon centered.");
   } catch (error) {
     if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
     if (error.name !== "AbortError" && thisRequest === requestVersion) {
@@ -229,6 +398,53 @@ copyButton.addEventListener("click", async () => {
   }
 });
 
+startScanButton.addEventListener("click", startCameraScanner);
+stopScanButton.addEventListener("click", () => {
+  stopCameraScanner();
+  scannerStatus.textContent = "Camera stopped.";
+});
+scanImageInput.addEventListener("change", () => scanSelectedImage(scanImageInput.files?.[0]));
+
+copyScanResultButton.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(scannerText.textContent);
+    scannerStatus.textContent = "Scanned content copied to your clipboard.";
+  } catch {
+    const temporaryInput = document.createElement("textarea");
+    temporaryInput.value = scannerText.textContent;
+    temporaryInput.setAttribute("readonly", "");
+    temporaryInput.style.position = "fixed";
+    temporaryInput.style.opacity = "0";
+    document.body.append(temporaryInput);
+    temporaryInput.select();
+    const copied = document.execCommand("copy");
+    temporaryInput.remove();
+    scannerStatus.textContent = copied
+      ? "Scanned content copied to your clipboard."
+      : "Clipboard access was blocked by your browser.";
+  }
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installButton.hidden = false;
+});
+
+installButton.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installButton.hidden = true;
+  if (outcome === "accepted") setStatus("QR Studio was installed on your device.");
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  installButton.hidden = true;
+});
+
 form.addEventListener("reset", () => {
   window.setTimeout(() => {
     clearCurrentCode();
@@ -240,3 +456,11 @@ form.addEventListener("reset", () => {
 
 showActiveFields();
 updateColorLabels();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.warn("QR Studio could not register its offline cache.", error);
+    });
+  });
+}
