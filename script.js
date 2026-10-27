@@ -45,6 +45,7 @@ const scannerResult = document.getElementById("scannerResult");
 const scannerFormat = document.getElementById("scannerFormat");
 const scannerText = document.getElementById("scannerText");
 const copyScanResultButton = document.getElementById("copyScanResultButton");
+const openScanWebsiteButton = document.getElementById("openScanWebsiteButton");
 const requiredByType = {
   text: ["textValue"],
   url: ["urlValue"],
@@ -347,6 +348,8 @@ function clearScannedResult() {
   scannerResult.hidden = true;
   scannerFormat.textContent = "";
   scannerText.textContent = "";
+  openScanWebsiteButton.hidden = true;
+  openScanWebsiteButton.href = "#";
 }
 
 function scannedFormatName(result) {
@@ -364,10 +367,15 @@ function showScannedResult(result, source) {
   scannerText.textContent = payload;
   scannerResult.hidden = false;
   addHistoryItem("scanned", payload, format);
+  const websiteUrl = safeWebsiteUrl(payload);
+  openScanWebsiteButton.hidden = !websiteUrl;
+  openScanWebsiteButton.href = websiteUrl || "#";
   const openedWebsite = autoOpenScannedWebsite(payload);
   scannerStatus.textContent = openedWebsite
-    ? `Code detected with ${source}. Opening its website in a new tab; your browser may block pop-ups.`
-    : `Code detected with ${source}.`;
+    ? `Website detected with ${source}. Automatic opening was requested; if blocked, use Open website below.`
+    : websiteUrl
+      ? `Website detected with ${source}. Use Open website below to continue.`
+      : `Code detected with ${source}.`;
 }
 
 async function startCameraScanner() {

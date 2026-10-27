@@ -58,7 +58,9 @@ test("scanner is bundled locally for offline use and QR payloads stay out of the
   assert.match(script, /addQrStudioMark/);
   assert.match(script, /addHistoryItem\("generated"/);
   assert.match(script, /addHistoryItem\("scanned"/);
+  assert.match(script, /openScanWebsiteButton\.hidden = !websiteUrl/);
   assert.match(html, /mailto:medsonkasese@yahoo\.com/);
+  assert.match(html, /id="openScanWebsiteButton"/);
   assert.match(html, /id="autoOpenToggle"/);
   assert.match(html, /id="cameraLightToggle"/);
   assert.match(html, /id="themeSelect"/);
