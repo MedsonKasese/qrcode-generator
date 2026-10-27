@@ -1,4 +1,13 @@
 import { buildQrPayload } from "./qr-content.js";
+import {
+  createHistoryEntry,
+  HISTORY_LIMIT,
+  readHistory,
+  readSettings,
+  safeWebsiteUrl,
+  writeHistory,
+  writeSettings,
+} from "./app-state.js";
 
 const form = document.getElementById("qrForm");
 const contentType = document.getElementById("contentType");
@@ -11,6 +20,14 @@ const downloadButton = document.getElementById("downloadButton");
 const copyButton = document.getElementById("copyButton");
 const statusMessage = document.getElementById("statusMessage");
 const installButton = document.getElementById("installButton");
+const autoOpenToggle = document.getElementById("autoOpenToggle");
+const cameraLightToggle = document.getElementById("cameraLightToggle");
+const themeSelect = document.getElementById("themeSelect");
+const settingsStatus = document.getElementById("settingsStatus");
+const historyList = document.getElementById("historyList");
+const historyEmpty = document.getElementById("historyEmpty");
+const historyStatus = document.getElementById("historyStatus");
+const clearHistoryButton = document.getElementById("clearHistoryButton");
 const wifiSecurity = document.getElementById("wifiSecurity");
 const wifiPassword = document.getElementById("wifiPassword");
 const wifiPasswordColumn = document.getElementById("wifiPasswordColumn");
@@ -28,6 +45,7 @@ const scannerResult = document.getElementById("scannerResult");
 const scannerFormat = document.getElementById("scannerFormat");
 const scannerText = document.getElementById("scannerText");
 const copyScanResultButton = document.getElementById("copyScanResultButton");
+const openScanWebsiteButton = document.getElementById("openScanWebsiteButton");
 const requiredByType = {
   text: ["textValue"],
   url: ["urlValue"],
@@ -46,6 +64,9 @@ let deferredInstallPrompt = null;
 let scannerReader = null;
 let scannerControls = null;
 let cameraScanActive = false;
+const settings = readSettings();
+const historyItems = readHistory();
+const systemThemePreference = window.matchMedia?.("(prefers-color-scheme: light)");
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -92,6 +113,137 @@ function syncWifiPassword() {
 function updateColorLabels() {
   document.getElementById("darkColorValue").textContent = qrDark.value.toUpperCase();
   document.getElementById("lightColorValue").textContent = qrLight.value.toUpperCase();
+}
+
+function applyTheme(theme) {
+  const useLight = theme === "light" || (theme === "system" && systemThemePreference?.matches);
+  document.documentElement.dataset.theme = useLight ? "light" : "dark";
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = useLight ? "#f2f6fa" : "#07111f";
+}
+
+function saveSettings(message = "Settings are saved only on this device.") {
+  settingsStatus.textContent = writeSettings(settings)
+    ? message
+    : "Could not save settings in this browser. Check its storage settings.";
+}
+
+function renderHistory() {
+  historyList.replaceChildren();
+  historyEmpty.hidden = historyItems.length > 0;
+  clearHistoryButton.disabled = historyItems.length === 0;
+
+  historyItems.forEach((entry) => {
+    const item = document.createElement("article");
+    item.className = "history-item";
+    item.setAttribute("role", "listitem");
+
+    const heading = document.createElement("div");
+    heading.className = "history-item-heading";
+    const title = document.createElement("strong");
+    title.textContent = `${entry.kind === "generated" ? "Generated" : "Scanned"} · ${entry.label}`;
+    const time = document.createElement("time");
+    const date = new Date(entry.timestamp);
+    time.textContent = Number.isNaN(date.getTime()) ? "Saved" : date.toLocaleString();
+    heading.append(title, time);
+
+    const payload = document.createElement("p");
+    payload.className = "history-payload";
+    payload.textContent = entry.payload.length > 280 ? `${entry.payload.slice(0, 280)}…` : entry.payload;
+
+    let fullPayloadDetails = null;
+    if (entry.payload.length > 280) {
+      fullPayloadDetails = document.createElement("details");
+      fullPayloadDetails.className = "history-full-content";
+      const fullPayloadSummary = document.createElement("summary");
+      fullPayloadSummary.textContent = "View full content";
+      const fullPayload = document.createElement("pre");
+      fullPayload.textContent = entry.payload;
+      fullPayloadDetails.append(fullPayloadSummary, fullPayload);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "history-actions";
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "button button-copy";
+    copyButton.textContent = "Copy content";
+    copyButton.dataset.action = "copy";
+    copyButton.dataset.itemId = entry.id;
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "button button-quiet";
+    removeButton.textContent = "Remove";
+    removeButton.dataset.action = "remove";
+    removeButton.dataset.itemId = entry.id;
+    actions.append(copyButton, removeButton);
+    item.append(heading, payload);
+    if (fullPayloadDetails) item.append(fullPayloadDetails);
+    item.append(actions);
+    historyList.append(item);
+  });
+
+  historyStatus.textContent = historyItems.length
+    ? `${historyItems.length} ${historyItems.length === 1 ? "code" : "codes"} saved on this device.`
+    : "";
+}
+
+function addHistoryItem(kind, payload, label) {
+  try {
+    historyItems.unshift(createHistoryEntry({ kind, payload, label }));
+    historyItems.splice(HISTORY_LIMIT);
+    const saved = writeHistory(historyItems);
+    renderHistory();
+    if (!saved) historyStatus.textContent = "This code is in history for this session, but browser storage could not save it.";
+  } catch {
+    historyStatus.textContent = "This code could not be added to history.";
+  }
+}
+
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    const temporaryInput = document.createElement("textarea");
+    temporaryInput.value = value;
+    temporaryInput.setAttribute("readonly", "");
+    temporaryInput.style.position = "fixed";
+    temporaryInput.style.opacity = "0";
+    document.body.append(temporaryInput);
+    temporaryInput.select();
+    const copied = document.execCommand("copy");
+    temporaryInput.remove();
+    return copied;
+  }
+}
+
+function autoOpenScannedWebsite(payload) {
+  if (!settings.autoOpenWebsites) return false;
+  const safeUrl = safeWebsiteUrl(payload);
+  if (!safeUrl) return false;
+  const link = document.createElement("a");
+  link.href = safeUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  return true;
+}
+
+async function applyCameraLight(enabled) {
+  const track = scannerVideo.srcObject?.getVideoTracks?.()[0];
+  if (!track?.applyConstraints) return false;
+  try {
+    const capabilities = track.getCapabilities?.();
+    if (capabilities?.torch !== true) return false;
+    await track.applyConstraints({ advanced: [{ torch: enabled }] });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function readFormValues() {
@@ -196,6 +348,8 @@ function clearScannedResult() {
   scannerResult.hidden = true;
   scannerFormat.textContent = "";
   scannerText.textContent = "";
+  openScanWebsiteButton.hidden = true;
+  openScanWebsiteButton.href = "#";
 }
 
 function scannedFormatName(result) {
@@ -207,10 +361,21 @@ function scannedFormatName(result) {
 function showScannedResult(result, source) {
   if (!result) return;
   stopCameraScanner();
-  scannerFormat.textContent = `${scannedFormatName(result)} · ${source}`;
-  scannerText.textContent = result.getText();
+  const format = scannedFormatName(result);
+  const payload = result.getText();
+  scannerFormat.textContent = `${format} · ${source}`;
+  scannerText.textContent = payload;
   scannerResult.hidden = false;
-  scannerStatus.textContent = `Code detected with ${source}.`;
+  addHistoryItem("scanned", payload, format);
+  const websiteUrl = safeWebsiteUrl(payload);
+  openScanWebsiteButton.hidden = !websiteUrl;
+  openScanWebsiteButton.href = websiteUrl || "#";
+  const openedWebsite = autoOpenScannedWebsite(payload);
+  scannerStatus.textContent = openedWebsite
+    ? `Website detected with ${source}. Automatic opening was requested; if blocked, use Open website below.`
+    : websiteUrl
+      ? `Website detected with ${source}. Use Open website below to continue.`
+      : `Code detected with ${source}.`;
 }
 
 async function startCameraScanner() {
@@ -245,7 +410,14 @@ async function startCameraScanner() {
     );
     scannerControls = controls;
     if (!cameraScanActive) controls.stop();
-    else scannerStatus.textContent = "Scanning. Hold a QR code or barcode steadily in the camera view.";
+    else if (settings.useCameraLight) {
+      const lightEnabled = await applyCameraLight(true);
+      if (cameraScanActive) {
+        scannerStatus.textContent = lightEnabled
+          ? "Scanning with the camera light on. Hold a QR code or barcode steadily in view."
+          : "Scanning. This camera does not support flashlight control; try more light or choose an image.";
+      }
+    } else scannerStatus.textContent = "Scanning. Hold a QR code or barcode steadily in the camera view.";
   } catch (error) {
     stopCameraScanner();
     if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
@@ -352,6 +524,7 @@ form.addEventListener("submit", async (event) => {
     previewPlaceholder.hidden = true;
     downloadButton.disabled = false;
     copyButton.disabled = false;
+    addHistoryItem("generated", payload, contentType.options[contentType.selectedIndex].textContent);
     setStatus("Your QR code is ready, with the QR Studio icon centered.");
   } catch (error) {
     if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
@@ -405,6 +578,70 @@ stopScanButton.addEventListener("click", () => {
 });
 scanImageInput.addEventListener("change", () => scanSelectedImage(scanImageInput.files?.[0]));
 
+historyList.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+  const entry = historyItems.find((item) => item.id === button.dataset.itemId);
+  if (!entry) return;
+
+  if (button.dataset.action === "copy") {
+    historyStatus.textContent = await copyText(entry.payload)
+      ? "Code content copied to your clipboard."
+      : "Clipboard access was blocked by your browser.";
+    return;
+  }
+
+  if (button.dataset.action === "remove") {
+    const index = historyItems.findIndex((item) => item.id === entry.id);
+    if (index !== -1) historyItems.splice(index, 1);
+    const saved = writeHistory(historyItems);
+    renderHistory();
+    if (!saved) historyStatus.textContent = "The item was removed for this session, but browser storage could not be updated.";
+  }
+});
+
+clearHistoryButton.addEventListener("click", () => {
+  if (!historyItems.length || !window.confirm("Clear all saved QR history from this browser?")) return;
+  historyItems.length = 0;
+  const saved = writeHistory(historyItems);
+  renderHistory();
+  if (!saved) historyStatus.textContent = "History was cleared for this session, but browser storage could not be updated.";
+});
+
+autoOpenToggle.addEventListener("change", () => {
+  settings.autoOpenWebsites = autoOpenToggle.checked;
+  saveSettings(settings.autoOpenWebsites
+    ? "Scanned HTTP and HTTPS links may now open automatically in a new tab."
+    : "Automatic website opening is off.");
+});
+
+cameraLightToggle.addEventListener("change", async () => {
+  settings.useCameraLight = cameraLightToggle.checked;
+  saveSettings(settings.useCameraLight
+    ? "Camera light will be used during live scanning where supported."
+    : "Camera light will stay off during scanning.");
+  if (!cameraScanActive || !scannerVideo.srcObject) {
+    scannerStatus.textContent = settings.useCameraLight
+      ? "Camera light preference saved; it will apply when a live scan starts."
+      : "Camera light preference saved.";
+    return;
+  }
+  const applied = await applyCameraLight(settings.useCameraLight);
+  scannerStatus.textContent = applied
+    ? settings.useCameraLight ? "Camera light turned on." : "Camera light turned off."
+    : "This camera does not support flashlight control.";
+});
+
+themeSelect.addEventListener("change", () => {
+  settings.theme = themeSelect.value;
+  applyTheme(settings.theme);
+  saveSettings("Theme preference saved on this device.");
+});
+
+systemThemePreference?.addEventListener("change", () => {
+  if (settings.theme === "system") applyTheme("system");
+});
+
 copyScanResultButton.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(scannerText.textContent);
@@ -454,6 +691,11 @@ form.addEventListener("reset", () => {
   }, 0);
 });
 
+autoOpenToggle.checked = settings.autoOpenWebsites;
+cameraLightToggle.checked = settings.useCameraLight;
+themeSelect.value = settings.theme;
+applyTheme(settings.theme);
+renderHistory();
 showActiveFields();
 updateColorLabels();
 

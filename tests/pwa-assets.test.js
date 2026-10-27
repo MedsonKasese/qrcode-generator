@@ -56,6 +56,14 @@ test("scanner is bundled locally for offline use and QR payloads stay out of the
   assert.match(script, /decodeFromConstraints/);
   assert.match(script, /decodeFromImageUrl/);
   assert.match(script, /addQrStudioMark/);
+  assert.match(script, /addHistoryItem\("generated"/);
+  assert.match(script, /addHistoryItem\("scanned"/);
+  assert.match(script, /openScanWebsiteButton\.hidden = !websiteUrl/);
+  assert.match(html, /mailto:medsonkasese@yahoo\.com/);
+  assert.match(html, /id="openScanWebsiteButton"/);
+  assert.match(html, /id="autoOpenToggle"/);
+  assert.match(html, /id="cameraLightToggle"/);
+  assert.match(html, /id="themeSelect"/);
   assert.match(serviceWorker, /\.\/assets\/vendor\/zxing-browser\.min\.js/);
   assert.match(serviceWorker, /requestUrl\.origin !== self\.location\.origin/);
   assert.doesNotMatch(serviceWorker, /quickchart\.io/);
@@ -63,6 +71,7 @@ test("scanner is bundled locally for offline use and QR payloads stay out of the
   const appShell = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\];/);
   assert.ok(appShell, "Service worker should declare its app shell");
   const shellUrls = [...appShell[1].matchAll(/"([^\"]+)"/g)].map((match) => match[1]);
+  assert.ok(shellUrls.includes("./app-state.js"), "Service worker should cache settings/history helpers for offline use");
   for (const url of shellUrls) {
     assert.ok(existsSync(localAssetPath(url)), `Missing service-worker app-shell asset: ${url}`);
   }

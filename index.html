@@ -33,6 +33,12 @@
       <button class="install-button" id="installButton" type="button" hidden>Install app</button>
     </header>
 
+    <nav class="section-nav" aria-label="Quick navigation">
+      <a href="#scanner">Scan</a>
+      <a href="#history">History</a>
+      <a href="#settings">Settings</a>
+    </nav>
+
     <form id="qrForm" class="workspace" novalidate>
       <section class="panel editor-panel" aria-labelledby="editorTitle">
         <div class="panel-heading">
@@ -189,7 +195,7 @@
       </aside>
     </form>
 
-    <section class="panel scanner-panel" aria-labelledby="scannerTitle">
+    <section class="panel scanner-panel" id="scanner" aria-labelledby="scannerTitle">
       <div class="panel-heading">
         <div>
           <p class="step-label">03 / SCAN A CODE</p>
@@ -212,9 +218,70 @@
         <p class="step-label" id="scannerFormat"></p>
         <pre id="scannerText"></pre>
         <button class="button button-copy" id="copyScanResultButton" type="button">Copy scanned content</button>
+        <a class="button button-download" id="openScanWebsiteButton" href="#" target="_blank" rel="noopener noreferrer" hidden>Open website</a>
       </div>
       <p class="privacy-note"><span aria-hidden="true">◆</span> Camera frames and selected images are decoded on this device; scanner data is not uploaded.</p>
     </section>
+
+    <section class="panel history-panel" id="history" aria-labelledby="historyTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">04 / YOUR CODES</p>
+          <h2 id="historyTitle">QR history</h2>
+        </div>
+        <button class="button button-quiet history-clear" id="clearHistoryButton" type="button" disabled>Clear history</button>
+      </div>
+      <p class="section-intro">Your recent scanned and generated codes, saved only in this browser. Entries include their full content, so remove anything sensitive.</p>
+      <p id="historyEmpty" class="history-empty">Your history will appear here after you scan or generate a code.</p>
+      <div id="historyList" class="history-list" role="list" aria-label="Previous QR codes"></div>
+      <p id="historyStatus" class="status-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel settings-panel" id="settings" aria-labelledby="settingsTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">05 / MAKE IT YOURS</p>
+          <h2 id="settingsTitle">Settings</h2>
+        </div>
+      </div>
+
+      <div class="settings-options">
+        <label class="setting-row" for="autoOpenToggle">
+          <span class="setting-copy"><strong>Open websites automatically</strong><small>When enabled, scanned HTTP or HTTPS links open in a new tab. Your browser may block pop-ups.</small></span>
+          <input id="autoOpenToggle" type="checkbox" role="switch">
+        </label>
+        <label class="setting-row" for="cameraLightToggle">
+          <span class="setting-copy"><strong>Use camera light while scanning</strong><small>Turns on the camera flashlight during a live scan when your device supports it.</small></span>
+          <input id="cameraLightToggle" type="checkbox" role="switch">
+        </label>
+        <div class="setting-row theme-setting">
+          <label class="setting-copy" for="themeSelect"><strong>Theme</strong><small>Choose a light, dark, or device-matched appearance.</small></label>
+          <select id="themeSelect" name="theme">
+            <option value="system">Use device setting</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-info">
+        <details>
+          <summary>About QR Studio</summary>
+          <p>Create QR codes for links, Wi-Fi, contact details, and more, or scan QR codes and common barcodes directly on your device.</p>
+        </details>
+        <details>
+          <summary>Privacy policy</summary>
+          <p>Your settings and history stay in this browser's local storage. History includes full QR contents, which may contain details such as Wi-Fi passwords; anyone with access to this browser may be able to read them. Remove individual entries or clear history when needed. Scans are decoded on-device and are not uploaded. When you generate a QR code, its content is sent to QuickChart to create the image; avoid encoding sensitive information. Clearing this browser's site data removes saved settings and history.</p>
+        </details>
+        <details>
+          <summary>Help</summary>
+          <p>Choose a content type, enter the details, and select <strong>Generate QR code</strong>. To scan, allow camera access after pressing <strong>Start camera</strong>, or choose an image. Camera scanning needs HTTPS or localhost. Use the history buttons to copy a saved code or remove it.</p>
+        </details>
+        <a class="feedback-link" href="mailto:medsonkasese@yahoo.com?subject=QR%20Studio%20feedback">Send feedback to medsonkasese@yahoo.com</a>
+      </div>
+      <p id="settingsStatus" class="status-message" role="status" aria-live="polite">Settings are saved only on this device.</p>
+    </section>
+
     <footer><span>QR Studio</span><span>Free to use · No account needed</span></footer>
   </main>
   <script src="./assets/vendor/zxing-browser.min.js"></script>

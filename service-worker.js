@@ -1,9 +1,10 @@
-const CACHE_NAME = "qr-studio-shell-v1";
+const CACHE_NAME = "qr-studio-shell-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./script.js",
+  "./app-state.js",
   "./qr-content.js",
   "./manifest.webmanifest",
   "./assets/icons/icon-192.png",
