@@ -46,6 +46,7 @@ const scannerFormat = document.getElementById("scannerFormat");
 const scannerText = document.getElementById("scannerText");
 const copyScanResultButton = document.getElementById("copyScanResultButton");
 const openScanWebsiteButton = document.getElementById("openScanWebsiteButton");
+const navigationLinks = [...document.querySelectorAll(".bottom-nav-link")];
 const requiredByType = {
   text: ["textValue"],
   url: ["urlValue"],
@@ -120,6 +121,37 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = useLight ? "light" : "dark";
   const themeColor = document.querySelector('meta[name="theme-color"]');
   if (themeColor) themeColor.content = useLight ? "#f2f6fa" : "#07111f";
+}
+
+function setActiveNavigation(sectionId) {
+  navigationLinks.forEach((link) => {
+    const active = link.hash === `#${sectionId}`;
+    link.classList.toggle("is-active", active);
+    if (active) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+}
+
+function setupSectionNavigation() {
+  const sections = navigationLinks
+    .map((link) => document.getElementById(link.hash.slice(1)))
+    .filter(Boolean);
+  const initialSection = window.location.hash.slice(1);
+  setActiveNavigation(sections.some((section) => section.id === initialSection) ? initialSection : "scanner");
+
+  navigationLinks.forEach((link) => {
+    link.addEventListener("click", () => setActiveNavigation(link.hash.slice(1)));
+  });
+  window.addEventListener("hashchange", () => setActiveNavigation(window.location.hash.slice(1)));
+
+  if (!("IntersectionObserver" in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    const visibleSection = entries
+      .filter((entry) => entry.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]?.target;
+    if (visibleSection) setActiveNavigation(visibleSection.id);
+  }, { rootMargin: "-35% 0px -55% 0px", threshold: [0, 0.15, 0.5, 1] });
+  sections.forEach((section) => observer.observe(section));
 }
 
 function saveSettings(message = "Settings are saved only on this device.") {
@@ -695,6 +727,7 @@ autoOpenToggle.checked = settings.autoOpenWebsites;
 cameraLightToggle.checked = settings.useCameraLight;
 themeSelect.value = settings.theme;
 applyTheme(settings.theme);
+setupSectionNavigation();
 renderHistory();
 showActiveFields();
 updateColorLabels();

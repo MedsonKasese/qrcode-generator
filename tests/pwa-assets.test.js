@@ -9,6 +9,7 @@ const manifest = JSON.parse(readFileSync(join(root, "manifest.webmanifest"), "ut
 const html = readFileSync(join(root, "index.html"), "utf8");
 const serviceWorker = readFileSync(join(root, "service-worker.js"), "utf8");
 const script = readFileSync(join(root, "script.js"), "utf8");
+const styles = readFileSync(join(root, "styles.css"), "utf8");
 
 function pngDimensions(path) {
   const bytes = readFileSync(path);
@@ -75,4 +76,23 @@ test("scanner is bundled locally for offline use and QR payloads stay out of the
   for (const url of shellUrls) {
     assert.ok(existsSync(localAssetPath(url)), `Missing service-worker app-shell asset: ${url}`);
   }
+});
+
+test("bottom navigation is fixed, accessible, and clear of device safe areas", () => {
+  assert.match(html, /<nav class="bottom-nav" aria-label="Main navigation">/);
+  assert.match(html, /name="viewport" content="[^"]*viewport-fit=cover/);
+  for (const section of ["scanner", "history", "settings"]) {
+    assert.match(html, new RegExp(`class="bottom-nav-link[^\"]*" href="#${section}"`));
+  }
+  assert.match(html, /aria-current="location"/);
+  assert.match(styles, /\.bottom-nav\s*\{[\s\S]*?position:\s*fixed/);
+  assert.match(styles, /\.bottom-nav\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3/);
+  assert.match(styles, /env\(safe-area-inset-bottom\)/);
+  assert.match(styles, /\.bottom-nav-link\s*\{[\s\S]*?min-height:\s*58px/);
+  assert.match(script, /new IntersectionObserver/);
+});
+
+test("feedback keeps its email destination without exposing the address as link text", () => {
+  assert.match(html, /href="mailto:medsonkasese@yahoo\.com\?subject=QR%20Studio%20feedback">Send feedback<\/a>/);
+  assert.doesNotMatch(html, /Send feedback to medsonkasese@yahoo\.com/i);
 });
