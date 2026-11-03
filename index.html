@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07111f">
   <meta name="description" content="Create and download customizable QR codes for links, Wi-Fi, email, phone numbers, messages, and contacts.">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,10 +33,19 @@
       <button class="install-button" id="installButton" type="button" hidden>Install app</button>
     </header>
 
-    <nav class="section-nav" aria-label="Quick navigation">
-      <a href="#scanner">Scan</a>
-      <a href="#history">History</a>
-      <a href="#settings">Settings</a>
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <a class="bottom-nav-link is-active" href="#scanner" aria-current="location">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M4 16v3a1 1 0 0 0 1 1h3"/><path d="M8 12h8M9 9h.01M15 15h.01"/></svg>
+        <span>Scan</span>
+      </a>
+      <a class="bottom-nav-link" href="#history">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
+        <span>History</span>
+      </a>
+      <a class="bottom-nav-link" href="#settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M16 7h4M4 17h4m4 0h8"/><circle cx="14" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+        <span>Settings</span>
+      </a>
     </nav>
 
     <form id="qrForm" class="workspace" novalidate>
@@ -277,7 +286,7 @@
           <summary>Help</summary>
           <p>Choose a content type, enter the details, and select <strong>Generate QR code</strong>. To scan, allow camera access after pressing <strong>Start camera</strong>, or choose an image. Camera scanning needs HTTPS or localhost. Use the history buttons to copy a saved code or remove it.</p>
         </details>
-        <a class="feedback-link" href="mailto:medsonkasese@yahoo.com?subject=QR%20Studio%20feedback">Send feedback to medsonkasese@yahoo.com</a>
+        <a class="feedback-link" href="mailto:medsonkasese@yahoo.com?subject=QR%20Studio%20feedback">Send feedback</a>
       </div>
       <p id="settingsStatus" class="status-message" role="status" aria-live="polite">Settings are saved only on this device.</p>
     </section>
